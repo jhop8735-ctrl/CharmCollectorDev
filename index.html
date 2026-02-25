@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charm Collector — Devlog</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #060a14;
+    --panel:    #0b1120;
+    --border:   #1a2a4a;
+    --gold:     #f0a030;
+    --gold2:    #ffd080;
+    --blue:     #3a8fff;
+    --blue2:    #7ab8ff;
+    --green:    #30d080;
+    --red:      #ff4a4a;
+    --orange:   #ff8c3a;
+    --muted:    #4a6080;
+    --text:     #c8d8f0;
+    --dim:      #6080a0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+    position: relative;
+  }
+
+  .header::after {
+    content: '';
+    display: block;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), var(--blue), transparent);
+    margin-top: 24px;
+  }
+
+  .game-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(20px, 5vw, 38px);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(240,160,48,0.5), 0 0 60px rgba(240,160,48,0.2);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    animation: flicker 8s infinite;
+  }
+
+  @keyframes flicker {
+    0%,96%,100% { opacity: 1; }
+    97% { opacity: 0.82; }
+    98% { opacity: 1; }
+    99% { opacity: 0.88; }
+  }
+
+  .sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--dim);
+    letter-spacing: 3px;
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+
+  .date-badge {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 4px 16px;
+    border: 1px solid var(--blue);
+    color: var(--blue2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    background: rgba(58,143,255,0.06);
+  }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--gold);
+    padding: 14px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 40px; height: 40px;
+    background: radial-gradient(circle at top right, rgba(240,160,48,0.08), transparent);
+  }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold2);
+    margin-top: 2px;
+  }
+
+  /* ── Section ── */
+  .section { margin-bottom: 44px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .section-header h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue2);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* ── Entry cards ── */
+  .entry {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    margin-bottom: 12px;
+    padding: 16px 20px;
+    position: relative;
+    transition: border-color 0.2s, background 0.2s;
+    animation: slideIn 0.4s ease both;
+  }
+
+  .entry:hover { border-left-color: var(--gold); background: #0d1525; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .entry.fix     { border-left-color: var(--green); }
+  .entry.bug     { border-left-color: var(--red); }
+  .entry.improve { border-left-color: var(--blue); }
+  .entry.feature { border-left-color: var(--gold); }
+  .entry.pending { border-left-color: var(--orange); }
+
+  .entry-tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    border: 1px solid currentColor;
+  }
+
+  .entry.fix     .entry-tag { color: var(--green);  background: rgba(48,208,128,0.07); }
+  .entry.bug     .entry-tag { color: var(--red);    background: rgba(255,74,74,0.07); }
+  .entry.improve .entry-tag { color: var(--blue2);  background: rgba(58,143,255,0.07); }
+  .entry.feature .entry-tag { color: var(--gold);   background: rgba(240,160,48,0.07); }
+  .entry.pending .entry-tag { color: var(--orange); background: rgba(255,140,58,0.07); }
+
+  .entry-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .entry-desc {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.55;
+  }
+
+  .entry-desc code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--gold2);
+    background: rgba(240,160,48,0.08);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  /* ── Known issues ── */
+  .known {
+    background: rgba(255,74,74,0.04);
+    border: 1px solid rgba(255,74,74,0.2);
+    border-left: 3px solid var(--red);
+    padding: 16px 20px;
+    margin-bottom: 10px;
+  }
+
+  .known-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ff8080;
+    margin-bottom: 3px;
+  }
+
+  .known-desc {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.5;
+  }
+
+  .known-desc code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: #ff9090;
+    background: rgba(255,74,74,0.08);
+    padding: 1px 5px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 64px;
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+  }
+
+  .pulse {
+    display: inline-block;
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(48,208,128,0.4); }
+    50%      { opacity: 0.7; box-shadow: 0 0 0 5px rgba(48,208,128,0); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="game-title">Charm Collector</div>
+    <div class="sub">BotWithUs Script — Development Log</div>
+    <div class="date-badge">Session — February 25, 2026</div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-label">Features Added</div>
+      <div class="stat-value">8</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Improvements</div>
+      <div class="stat-value">4</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Known Bugs</div>
+      <div class="stat-value" style="color: var(--red);">5</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">API Version</div>
+      <div class="stat-value" style="font-size:15px; margin-top:4px;">1.0.8</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Status</div>
+      <div class="stat-value" style="font-size:13px; color: var(--green); margin-top:6px;"><span class="pulse"></span>IN DEV</div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!--  FEATURES ADDED                                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header"><h2>Features Added</h2></div>
+
+    <div class="entry feature">
+      <div class="entry-tag">Feature</div>
+      <div class="entry-title">Auto Eat</div>
+      <div class="entry-desc">
+        Eats food from the backpack when HP drops below a configurable percentage threshold. 
+        Food is identified entirely by name — no item IDs required. 
+        The food name and eat-below threshold are both configurable from the UI. 
+        Eating is skipped during the overload damage window to prevent wasted food ticks.
+        Tracks total food eaten per session.
+      </div>
+    </div>
+
+    <div class="entry feature">
+      <div class="entry-tag">Feature</div>
+      <div class="entry-title">Charming Potion Maintenance</div>
+      <div class="entry-desc">
+        Automatically maintains the Charming potion buff (6-minute duration). 
+        Searches the backpack for doses (4) down to (1) by name and drinks the highest available. 
+        Re-drinks with 90 seconds remaining on the buff so there is no gap in coverage. 
+        Tracks total potions consumed per session and shows a live countdown in the UI.
+      </div>
+    </div>
+
+    <div class="entry feature">
+      <div class="entry-tag">Feature</div>
+      <div class="entry-title">Overload Maintenance</div>
+      <div class="entry-desc">
+        Maintains the Overload buff (6-minute duration) with support for all four variants: 
+        <code>Super overload salve</code>, <code>Super overload</code>, <code>Overload (salve)</code>, and <code>Overload</code>, 
+        each searched doses (4) to (1) in priority order. 
+        After drinking, a 5-second damage window is observed — auto-eat is suppressed during this 
+        period to prevent food from being wasted on the intentional HP drain ticks.
+      </div>
+    </div>
+
+    <div class="entry feature">
+      <div class="entry-tag">Feature</div>
+      <div class="entry-title">Auto Loot — Loot All &amp; Loot Custom modes</div>
+      <div class="entry-desc">
+        Fires a loot action on a randomised timer (45 seconds to 2 minutes) with human-like delays. 
+        Supports two modes selectable via radio button: <code>Loot All</code> and <code>Loot Custom</code>, 
+        each using the correct component action ID for the loot interface (id <code>1490</code>). 
+        If the interface is closed, the nearest ground item is clicked via 
+        <code>GroundItemAction.GROUND_ITEM1</code> to reopen it before looting. 
+        Charm and coin gains are tracked via a pre/post backpack snapshot on every loot cycle.
+      </div>
+    </div>
+
+    <div class="entry feature">
+      <div class="entry-tag">Feature</div>
+      <div class="entry-title">Bury Bones</div>
+      <div class="entry-desc">
+        Automatically buries any bones present in the backpack after each loot cycle. 
+        Uses <code>InventoryItemQuery.option("Bury")</code> to find all buriable items — 
+        zero hardcoded names or IDs, so every bone type in the game is supported automatically including 
+        future additions. Buries one at a time with a 1.7–2.1 second wait between each for the bury animation. 
+        Tracks total bones buried per session.
+      </div>
+    </div>
+
+    <div class="entry feature">
+      <div class="entry-tag">Feature</div>
+      <div class="entry-title">Aggro Rotation — AFK Location Presets</div>
+      <div class="entry-desc">
+        Detects aggro loss using four independent signals: <code>inCombat()</code>, 
+        <code>getHitmarks()</code> (being hit this tick), <code>hasTarget()</code> (player targeting something), 
+        and <code>NpcQuery.interactId(playerId)</code> (any NPC locked onto the player). 
+        After a configurable grace period of no-combat signals, the script walks to the next spot in 
+        the selected preset using <code>WalkAction.WALK</code> DoAction calls. 
+        Arrival is confirmed by polling <code>Distance.between()</code> until within 3 tiles. 
+        Preset spots are defined with coordinates and the correct <code>param1</code> values matching 
+        the game's original DoAction format. The Hellhounds (GWD) rotation is included as the first preset.
+      </div>
+    </div>
+
+    <div class="entry feature">
+      <div class="entry-tag">Feature</div>
+      <div class="entry-title">Per-feature Checkbox Toggles</div>
+      <div class="entry-desc">
+        Every feature in the script is independently toggleable from the ImGui UI panel via checkbox. 
+        Disabling a feature collapses its sub-settings in the UI to keep the panel clean. 
+        Features covered: Auto Eat, Charming Potion, Overload, Auto Loot, Bury Bones, Aggro Rotation. 
+        Each section shows relevant live stats and status only when enabled.
+      </div>
+    </div>
+
+    <div class="entry feature">
+      <div class="entry-tag">Feature</div>
+      <div class="entry-title">Session Statistics Panel</div>
+      <div class="entry-desc">
+        Tracks and displays live session stats: total charms looted, charms/hr, coins looted, coins/hr, 
+        food eaten, charming potions drank, overloads drank, and bones buried. 
+        All rates are computed from the session start time. Stats reset on each Start press.
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!--  IMPROVEMENTS                                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header"><h2>Improvements</h2></div>
+
+    <div class="entry improve">
+      <div class="entry-tag">Improve</div>
+      <div class="entry-title">Human-like Delays Throughout</div>
+      <div class="entry-desc">
+        All actions use randomised delays via the API's built-in <code>RandomGenerator.nextInt(min, max)</code> 
+        rather than fixed sleeps or <code>java.util.Random</code>. Pre-action pauses, post-eat delays, 
+        post-drink delays, loot cycle intervals, pre-walk pauses, and post-arrival waits all 
+        use distinct randomised ranges to avoid timing fingerprinting.
+      </div>
+    </div>
+
+    <div class="entry improve">
+      <div class="entry-tag">Improve</div>
+      <div class="entry-title">Walk Jitter + Click Limit on Aggro Rotation</div>
+      <div class="entry-desc">
+        Walk actions apply ±1 tile random jitter to the target coordinates so the exact same 
+        tile is never clicked twice. Each rotation sends only 1–3 walk clicks (randomly chosen) 
+        with a short gap between each rather than spamming the action repeatedly. 
+        The script then waits for actual arrival using distance polling rather than a fixed timer.
+      </div>
+    </div>
+
+    <div class="entry improve">
+      <div class="entry-tag">Improve</div>
+      <div class="entry-title">Not-Retaliating Detection</div>
+      <div class="entry-desc">
+        The aggro detection layer distinguishes between "being attacked and fighting back" 
+        vs "being attacked but not retaliating." If an NPC is targeting the player but the 
+        player has no target and is not in combat, a warning is logged to the console: 
+        <code>Being attacked but not retaliating — check auto-retaliate is ON.</code> 
+        Aggro is still treated as active in both cases so the rotation does not fire.
+      </div>
+    </div>
+
+    <div class="entry improve">
+      <div class="entry-tag">Improve</div>
+      <div class="entry-title">API Correctness Pass — Full JAR Inspection</div>
+      <div class="entry-desc">
+        The BotWithUs API JAR (v1.0.8) was fully inspected to verify every call used in the script. 
+        Corrected: HP reading from <code>LocalPlayer.getCurrentHealth()</code> and <code>getMaximumHealth()</code> 
+        (not a static Client method); food/potion interactions via <code>Backpack.interact(name, option)</code>; 
+        ground item interaction via <code>GroundItemAction</code> enum; nearest item via 
+        <code>EntityResultSet.nearest()</code>; random delays via <code>RandomGenerator</code>; 
+        and <code>Client.setAntiAFK()</code> on start/stop.
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!--  KNOWN ISSUES                                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header"><h2>Known Issues / To Fix</h2></div>
+
+    <div class="known">
+      <div class="known-title">Aggro rotation fires on first loop before any combat</div>
+      <div class="known-desc">
+        <code>lastCombatTimeMs</code> starts at 0, so on the very first loop tick the idle check 
+        passes immediately if the grace period math overflows. Guard added (<code>lastCombatTimeMs == 0L</code> 
+        skips rotation) but needs testing at a location with no initial aggro to confirm it holds.
+      </div>
+    </div>
+
+    <div class="known">
+      <div class="known-title">Not-retaliating state does not auto-retaliate</div>
+      <div class="known-desc">
+        When the script detects that an NPC is targeting the player but the player has no target 
+        (auto-retaliate may be off or slow), it only logs a warning. It does not attempt to 
+        re-engage the NPC. Adding auto-retaliate triggering via NPC interact is a planned improvement.
+      </div>
+    </div>
+
+    <div class="known">
+      <div class="known-title">Overload damage window is a fixed 5s timer, not tick-accurate</div>
+      <div class="known-desc">
+        The 5-second eat suppression after drinking an overload is hardcoded. If the server is lagging 
+        or the pouch takes longer to proc, food could still fire during a damage tick. 
+        A better approach would be to watch <code>getHitmarks()</code> and suppress eating while 
+        overload self-damage splats are present.
+      </div>
+    </div>
+
+    <div class="known">
+      <div class="known-title">Loot interface re-open can click wrong item</div>
+      <div class="known-desc">
+        When the loot interface is closed, the script clicks <code>EntityResultSet.nearest()</code> 
+        ground item to reopen it. If the nearest item on the ground is not a monster drop 
+        (e.g. a player-dropped item or an unrelated object), the loot interface may not open 
+        and the loot cycle will silently skip. Needs filtering by item type or area constraint.
+      </div>
+    </div>
+
+    <div class="known">
+      <div class="known-title">No presets can be added from the UI at runtime</div>
+      <div class="known-desc">
+        AFK location presets are currently hardcoded as a static list in the source. 
+        To add a new location, the source must be edited and recompiled. 
+        A planned improvement is a UI form to enter a name and coordinate pairs at runtime, 
+        persisted to <code>ScriptConfig</code>.
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="footer">
+    <span class="pulse"></span>
+    CHARM COLLECTOR &nbsp;·&nbsp; DEV SESSION 2026-02-25 &nbsp;·&nbsp; BUILD IN PROGRESS &nbsp;·&nbsp; BOTWITHUS API 1.0.8
+  </div>
+
+</div>
+</body>
+</html>
